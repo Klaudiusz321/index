@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { About } from "./components/About";
 import { Features } from "./components/Features";
@@ -7,9 +7,83 @@ import { Hero } from "./components/Hero";
 import { Navbar } from "./components/Navbar";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { NextSection } from "./components/next";
+import { MolpyDocs, MolplotDocs, MolvisDocs } from "./docs";
+import { LoadingScreen } from "./components/LoadingScreen";
 import "./App.css";
 
 function App() {
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingText, setLoadingText] = useState("Loading MolCrafts...");
+
+  // Symulacja początkowego ładowania aplikacji
+  useEffect(() => {
+    // Pokaż ekran ładowania przez 2 sekundy przy pierwszym uruchomieniu
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Handle route changes and history
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setCurrentPath(window.location.pathname);
+      window.scrollTo(0, 0);
+    };
+
+    // Handle browser back/forward navigation
+    window.addEventListener('popstate', handleLocationChange);
+
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+    };
+  }, []);
+
+  // Modify links to use client-side routing
+  useEffect(() => {
+    const handleLinkClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest('a');
+      
+      if (anchor && anchor.href && anchor.href.startsWith(window.location.origin) && !anchor.target) {
+        e.preventDefault();
+        const newPath = anchor.href.replace(window.location.origin, '');
+        
+        if (newPath !== currentPath) {
+          // Pokazujemy ekran ładowania przy zmianie strony
+          setLoadingText(`Loading ${getPageName(newPath)}...`);
+          setIsLoading(true);
+          
+          // Update URL without full page reload
+          window.history.pushState({}, '', newPath);
+          
+          // Symulacja czasu ładowania strony
+          setTimeout(() => {
+            setCurrentPath(newPath);
+            window.scrollTo(0, 0);
+            setIsLoading(false);
+          }, 1200); // Symulacja czasu ładowania
+        }
+      }
+    };
+
+    document.addEventListener('click', handleLinkClick);
+    return () => {
+      document.removeEventListener('click', handleLinkClick);
+    };
+  }, [currentPath]);
+
+  // Pomocnicza funkcja do uzyskania nazwy strony na podstawie ścieżki
+  const getPageName = (path: string): string => {
+    if (path === '/') return 'Home';
+    if (path.startsWith('/docs/molpy')) return 'MolPy Documentation';
+    if (path.startsWith('/docs/molplot')) return 'MolPlot Documentation';
+    if (path.startsWith('/docs/molvis')) return 'MolVis Documentation';
+    return path.split('/').pop() || 'Page';
+  };
+
   // Obsługa efektu przewijania dla elementów z klasą scroll-fade
   useEffect(() => {
     const handleScroll = () => {
@@ -23,33 +97,64 @@ function App() {
       });
     };
     
-    window.addEventListener('scroll', handleScroll);
-    // Wywołaj raz na początku, aby aktywować widoczne elementy
-    handleScroll();
-    
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    // Only add scroll handler for the landing page
+    if (currentPath === '/') {
+      window.addEventListener('scroll', handleScroll);
+      // Wywołaj raz na początku, aby aktywować widoczne elementy
+      handleScroll();
+      
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+  }, [currentPath]);
 
-  return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex flex-col min-h-screen"
-      >
-        <Navbar />
-        <main className="flex-grow">
+  // Check if we're on a docs page
+  const isDocsPage = currentPath.startsWith('/docs/');
+
+  // Render content based on the current path
+  const renderContent = () => {
+    if (currentPath.startsWith('/docs/molpy')) {
+      return <MolpyDocs />;
+    } else if (currentPath.startsWith('/docs/molplot')) {
+      return <MolplotDocs />;
+    } else if (currentPath.startsWith('/docs/molvis')) {
+      return <MolvisDocs />;
+    } else {
+      // Default landing page
+      return (
+        <>
           <Hero />
           <NextSection />
           <Features />
           <About />
-        </main>
-        <Footer />
-        <ScrollToTop />
-      </motion.div>
-    </AnimatePresence>
+        </>
+      );
+    }
+  };
+
+  return (
+    <>
+      <LoadingScreen isLoading={isLoading} text={loadingText} />
+      
+      <AnimatePresence mode="wait">
+        {!isLoading && (
+          <motion.div
+            key={currentPath}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col min-h-screen"
+          >
+            {!isDocsPage && <Navbar />}
+            <main className={`flex-grow ${isDocsPage ? 'docs-page' : ''}`}>
+              {renderContent()}
+            </main>
+            {!isDocsPage && <Footer />}
+            <ScrollToTop />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
