@@ -1,154 +1,118 @@
-import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { About } from "./components/About";
-import { Features } from "./components/Features";
+import { useEffect, useState } from "react";
 import { Footer } from "./components/Footer";
-import { Hero } from "./components/Hero";
 import { Navbar } from "./components/Navbar";
-import { ScrollToTop } from "./components/ScrollToTop";
-import { NextSection } from "./components/next";
-import { MolpyDocs, MolpotDocs, MolvisDocs } from "./docs";
-
 import { SEOSchema } from "./components/SEOSchema";
-import "./App.css";
+import { HomePage } from "./components/home/HomePage";
+import { trackPageView } from "./lib/analytics";
+import { packageGithubHref } from "./lib/packages";
+import { pathProductSlug } from "./lib/routes";
+import { PAGE_ATMOSPHERE } from "./lib/styleTokens";
+import { cn } from "./lib/utils";
+import { NotFound } from "./pages";
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const [isLoading, setIsLoading] = useState(true);
-  
 
-  // Symulacja początkowego ładowania aplikacji
   useEffect(() => {
-    // Reduce loading time to improve SEO and initial page load
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-    
+    const timer = setTimeout(() => setIsLoading(false), 400);
     return () => clearTimeout(timer);
   }, []);
 
-  // Handle route changes and history
   useEffect(() => {
     const handleLocationChange = () => {
       setCurrentPath(window.location.pathname);
       window.scrollTo(0, 0);
     };
-
-    // Handle browser back/forward navigation
-    window.addEventListener('popstate', handleLocationChange);
-
-    return () => {
-      window.removeEventListener('popstate', handleLocationChange);
-    };
+    window.addEventListener("popstate", handleLocationChange);
+    return () => window.removeEventListener("popstate", handleLocationChange);
   }, []);
 
-  // Modify links to use client-side routing
+  /* Client-side routing means GA's automatic page_view fires once and misses every
+     navigation after it, so each route change reports its own view. */
+  useEffect(() => {
+    trackPageView(currentPath);
+  }, [currentPath]);
+
   useEffect(() => {
     const handleLinkClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      const anchor = target.closest('a');
-      
-      if (anchor && anchor.href && anchor.href.startsWith(window.location.origin) && !anchor.target) {
+      const anchor = target.closest("a");
+
+      if (anchor?.href?.startsWith(window.location.origin) && !anchor.target) {
+        const url = new URL(anchor.href);
+
+        if (url.pathname === window.location.pathname && url.hash) {
+          return;
+        }
+
         e.preventDefault();
-        const newPath = anchor.href.replace(window.location.origin, '');
-        
-        if (newPath !== currentPath) {
-          // Pokazujemy ekran ładowania przy zmianie strony
-          
-          
-          
-          // Update URL without full page reload
-          window.history.pushState({}, '', newPath);
-          
-          // Reduce page transition loading time
+        const newPath = url.pathname + url.search;
+
+        if (newPath !== currentPath + window.location.search) {
+          window.history.pushState({}, "", newPath);
           setTimeout(() => {
-            setCurrentPath(newPath);
+            setCurrentPath(url.pathname);
             window.scrollTo(0, 0);
             setIsLoading(false);
-          }, 500); // Reduced from 1200ms to improve UX and SEO
+          }, 350);
         }
       }
     };
 
-    document.addEventListener('click', handleLinkClick);
-    return () => {
-      document.removeEventListener('click', handleLinkClick);
-    };
+    document.addEventListener("click", handleLinkClick);
+    return () => document.removeEventListener("click", handleLinkClick);
   }, [currentPath]);
 
- 
-
-
+  const isHome = currentPath === "/" || currentPath === "";
+  const retiredSlug = pathProductSlug(currentPath);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const elements = document.querySelectorAll('.scroll-fade');
-      elements.forEach(element => {
-        const position = element.getBoundingClientRect();
-        // Aktywuj efekt, gdy element jest widoczny w oknie przeglądarki
-        if (position.top < window.innerHeight - 100) {
-          element.classList.add('active');
-        }
-      });
-    };
-    
-    // Only add scroll handler for the landing page
-    if (currentPath === '/') {
-      window.addEventListener('scroll', handleScroll);
-      // Wywołaj raz na początku, aby aktywować widoczne elementy
-      handleScroll();
-      
-      return () => window.removeEventListener('scroll', handleScroll);
-    }
-  }, [currentPath]);
+    if (!retiredSlug) return;
+    window.location.replace(packageGithubHref(retiredSlug));
+  }, [retiredSlug]);
 
-  // Check if we're on a docs page
-  const isDocsPage = currentPath.startsWith('/docs/');
-
-  // Render content based on the current path
   const renderContent = () => {
-    if (currentPath.startsWith('/docs/molpy')) {
-      return <MolpyDocs />;
-    } else if (currentPath.startsWith('/docs/molpot')) {
-      return <MolpotDocs />;
-    } else if (currentPath.startsWith('/docs/molvis')) {
-      return <MolvisDocs />;
-    } else {
-      // Default landing page
-      return (
-        <>
-          <Hero />
-          <NextSection />
-          <Features />
-          <About />
-        </>
-      );
+    if (isHome) {
+      return <HomePage />;
     }
+
+    if (retiredSlug) {
+      return null;
+    }
+
+    return <NotFound />;
   };
 
   return (
     <>
-      {/* SEO Structured Data */}
       <SEOSchema path={currentPath} />
-      
-     
-      
+      {/* The homepage owns its own chrome: `HomeAtmosphere` replaces this background,
+          `HomeFooter` replaces the shared footer, and `/` is dark regardless of theme. */}
+      {!isHome && <div className={PAGE_ATMOSPHERE} aria-hidden="true" />}
+
       <AnimatePresence mode="wait">
         {!isLoading && (
+          // The homepage enters on opacity alone. A translate would put a CSS
+          // transform on this element, which makes it the containing block for the
+          // `position: fixed` layers `HomeAtmosphere` mounts inside it — placing and
+          // sizing the page's whole background against the document instead of the
+          // viewport for the length of the entrance.
           <motion.div
             key={currentPath}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col min-h-screen"
+            initial={isHome ? { opacity: 0 } : { opacity: 0, y: 20 }}
+            animate={isHome ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            exit={isHome ? { opacity: 0 } : { opacity: 0, y: -12 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className={cn(
+              "relative z-1 flex flex-col",
+              isHome ? "dark min-h-screen min-w-0 bg-background text-foreground" : "min-h-screen",
+            )}
           >
-            {!isDocsPage && <Navbar />}
-            <main className={`flex-grow ${isDocsPage ? 'docs-page' : ''}`}>
-              {renderContent()}
-            </main>
-            {!isDocsPage && <Footer />}
-            <ScrollToTop />
+            <Navbar />
+            <main className={isHome ? "min-w-0 flex-1" : "flex-grow"}>{renderContent()}</main>
+            {!isHome && <Footer />}
           </motion.div>
         )}
       </AnimatePresence>

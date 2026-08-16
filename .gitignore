@@ -22,3 +22,20 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local tool config
+# Keep local Claude runtime configuration private while versioning the Mol
+# harness's passive notes and active specs.
+.claude/*
+!.claude/notes/
+!.claude/notes/**
+!.claude/specs/
+!.claude/specs/**
+package-lock.json
+
+# Local environment overrides (see .env.example)
+.env
+.env.local
+
+# Playwright session dumps from visual review — not site assets
+.playwright-mcp/
