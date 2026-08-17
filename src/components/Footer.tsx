@@ -1,134 +1,164 @@
-import { motion } from "framer-motion";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
-import { fadeIn } from "../lib/animations";
+import { motion } from "framer-motion";
+import { ArrowUpRight } from "lucide-react";
+import { fadeIn, staggerContainer } from "../lib/animations";
+import { contactHref } from "../lib/contact";
+import { BRAND_GRADIENT_TEXT } from "../lib/styleTokens";
+import { TYPE_LABEL } from "../lib/typeStyles";
+import { cn } from "../lib/utils";
 import { LogoIcon } from "./Icons";
+import { Button } from "./ui/button";
+
+interface FooterLink {
+  label: string;
+  href: string;
+  external?: boolean;
+}
+
+/**
+ * Deliberately does NOT re-list the packages. The nav dropdown and the homepage
+ * Projects section already carry the full catalog; a third copy is what made this
+ * footer read as noise.
+ */
+const COLUMNS: { title: string; links: FooterLink[] }[] = [
+  {
+    title: "Explore",
+    links: [
+      { label: "Projects", href: "/#applications" },
+      { label: "What we do", href: "/#solutions" },
+      { label: "Documentation", href: "https://docs.molcrafts.org/", external: true },
+      { label: "GitHub", href: "https://github.com/MolCrafts", external: true },
+    ],
+  },
+  {
+    title: "Work with us",
+    links: [
+      { label: "Consulting", href: contactHref("Consulting") },
+      { label: "Enterprise", href: contactHref("Enterprise") },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      {
+        label: "License",
+        href: "https://github.com/MolCrafts/index/blob/master/LICENSE",
+        external: true,
+      },
+    ],
+  },
+];
+
+function FooterNavLink({ link }: { link: FooterLink }) {
+  return (
+    <a
+      href={link.href}
+      target={link.external ? "_blank" : undefined}
+      rel={link.external ? "noreferrer noopener" : undefined}
+      className={cn(
+        "group inline-flex items-center gap-1 text-sm font-medium text-foreground/80 no-underline",
+        "transition-colors hover:text-foreground",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+      )}
+    >
+      {link.label}
+      {link.external && (
+        <ArrowUpRight
+          className="h-3.5 w-3.5 shrink-0 opacity-40 transition-opacity group-hover:opacity-90"
+          aria-hidden="true"
+        />
+      )}
+      {link.external && <span className="sr-only">(opens in a new tab)</span>}
+    </a>
+  );
+}
+
+/*
+ * The last two rungs of the old homepage section language. Everything else in that
+ * module described a page that no longer exists, so the survivors live with their
+ * only caller instead of behind a shared module nobody else imports.
+ */
+const sectionContainer = "container relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-10";
+const sectionSubLabel = cn(TYPE_LABEL, "font-outfit text-xs font-bold text-primary");
 
 export const Footer = () => {
-	const currentYear = new Date().getFullYear();
-	
-	return (
-		<footer id="footer" className="w-full bg-gradient-to-b from-background to-card/10 mt-auto">
-			<hr className="w-11/12 mx-auto opacity-30" />
+  const currentYear = new Date().getFullYear();
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
-			<motion.section 
-				className="container py-12 md:py-16 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-x-12 gap-y-8"
-				initial={{ opacity: 0, y: 20 }}
-				whileInView={{ opacity: 1, y: 0 }}
-				transition={{ duration: 0.7 }}
-				viewport={{ once: true }}
-			>
-				<motion.div 
-					className="col-span-full xl:col-span-2 space-y-4"
-					variants={fadeIn}
-					initial="hidden"
-					whileInView="visible"
-					viewport={{ once: true }}
-				>
-					<motion.a
-						href="/"
-						className="font-bold text-xl flex items-center space-x-2"
-						whileHover={{ scale: 1.03 }}
-					>
-						<LogoIcon />
-						<span className="gradient-text-primary">MolCrafts</span>
-					</motion.a>
-					
-					<p className="text-muted-foreground max-w-xs mt-2">
-						Open-source molecular sciences toolbox for advanced research and education.
-					</p>
-				</motion.div>
+  return (
+    <footer
+      id="footer"
+      className={cn(
+        "mt-auto w-full border-t border-border/50 bg-background/80 backdrop-blur-sm",
+        "shadow-[0_-1px_0_0_rgba(var(--accent-rgb),0.06)]",
+      )}
+    >
+      <motion.div
+        className={cn(sectionContainer, "grid gap-12 py-16 md:grid-cols-12 md:gap-10 md:py-20")}
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+      >
+        <motion.div className="flex flex-col gap-5 md:col-span-4" variants={fadeIn}>
+          <a
+            href="/"
+            className="inline-flex items-center gap-2 text-xl font-bold no-underline outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <LogoIcon />
+            <span className={BRAND_GRADIENT_TEXT}>MolCrafts</span>
+          </a>
+          <p className="max-w-sm text-sm leading-relaxed text-muted-foreground md:text-base">
+            We build AI-assisted infra for molecular science.
+          </p>
+          <a
+            href="https://github.com/MolCrafts"
+            rel="noreferrer noopener"
+            target="_blank"
+            aria-label="MolCrafts on GitHub (opens in a new tab)"
+            className="self-start text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <GitHubLogoIcon className="h-5 w-5" />
+          </a>
+        </motion.div>
 
-				<motion.div 
-					className="flex flex-col gap-2"
-					initial={{ opacity: 0 }}
-					whileInView={{ opacity: 1 }}
-					transition={{ delay: 0.1, duration: 0.7 }}
-					viewport={{ once: true }}
-				>
-					<h3 className="font-bold text-lg">Follow Us</h3>
-					<div>
-						<motion.a
-							href="https://github.com/MolCrafts"
-							className="opacity-60 hover:opacity-100 flex items-center"
-							whileHover={{ x: 5 }}
-						>
-							<GitHubLogoIcon className="mr-2 h-4 w-4" />
-							Github
-						</motion.a>
-					</div>
-				</motion.div>
-				
-				<motion.div 
-					className="flex flex-col gap-2"
-					initial={{ opacity: 0 }}
-					whileInView={{ opacity: 1 }}
-					transition={{ delay: 0.2, duration: 0.7 }}
-					viewport={{ once: true }}
-				>
-					<h3 className="font-bold text-lg">Resources</h3>
-					<div className="space-y-2">
-						<div>
-							<motion.a
-								href="#features"
-								className="opacity-60 hover:opacity-100 block"
-								whileHover={{ x: 5 }}
-							>
-								Features
-							</motion.a>
-						</div>
-						<div>
-							<motion.a
-								href="#about"
-								className="opacity-60 hover:opacity-100 block"
-								whileHover={{ x: 5 }}
-							>
-								About
-							</motion.a>
-						</div>
-					</div>
-				</motion.div>
-				
-				<motion.div 
-					className="flex flex-col gap-2"
-					initial={{ opacity: 0 }}
-					whileInView={{ opacity: 1 }}
-					transition={{ delay: 0.3, duration: 0.7 }}
-					viewport={{ once: true }}
-				>
-					<h3 className="font-bold text-lg">Newsletter</h3>
-					<div className="space-y-3">
-						<p className="text-sm text-muted-foreground">
-							Subscribe for updates
-						</p>
-						<div className="flex">
-							<input 
-								type="email" 
-								placeholder="Email address" 
-								className="py-1 px-2 rounded-l-md border border-input bg-background text-sm max-w-32 md:max-w-none"
-							/>
-							<motion.button 
-								className="bg-primary text-primary-foreground px-3 py-1 rounded-r-md text-sm"
-								whileHover={{ backgroundColor: "hsl(var(--primary) / 0.8)" }}
-								whileTap={{ scale: 0.97 }}
-							>
-								Subscribe
-							</motion.button>
-						</div>
-					</div>
-				</motion.div>
-			</motion.section>
+        <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 md:col-span-8 md:gap-8">
+          {COLUMNS.map((column) => (
+            <motion.nav
+              key={column.title}
+              className="flex flex-col gap-4"
+              variants={fadeIn}
+              aria-label={column.title}
+            >
+              <span className={cn(sectionSubLabel, "text-muted-foreground")}>{column.title}</span>
+              <ul className="m-0 flex list-none flex-col gap-3 p-0">
+                {column.links.map((link) => (
+                  <li key={link.label}>
+                    <FooterNavLink link={link} />
+                  </li>
+                ))}
+              </ul>
+            </motion.nav>
+          ))}
+        </div>
+      </motion.div>
 
-			<motion.section 
-				className="container pb-8 text-center text-sm text-muted-foreground"
-				initial={{ opacity: 0 }}
-				whileInView={{ opacity: 1 }}
-				transition={{ delay: 0.4, duration: 0.7 }}
-				viewport={{ once: true }}
-			>
-				<h3>
-					&copy; {currentYear} MolCrafts. All rights reserved.
-				</h3>
-			</motion.section>
-		</footer>
-	);
+      <div
+        className={cn(
+          sectionContainer,
+          "flex flex-col gap-3 border-t border-border/40 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between",
+        )}
+      >
+        <span>&copy; {currentYear} MolCrafts</span>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={scrollToTop}
+          className="h-auto self-start p-0 text-left font-normal text-muted-foreground transition-colors hover:bg-transparent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:self-auto"
+        >
+          Back to top
+        </Button>
+      </div>
+    </footer>
+  );
 };

@@ -1,6 +1,5 @@
-declare module '*.svg' {
-  import * as React from 'react';
-  
-  const SVG: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
-  export default SVG;
-} 
+/** Rsbuild emits SVG imports as asset URLs (string), not SVGR components. */
+declare module "*.svg" {
+  const src: string;
+  export default src;
+}
